@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Calculator</title>
+	<link rel="stylesheet" type="text/css" href="./static/styles/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="./static/styles/font-awesome.min.css">
+	<link rel="stylesheet" type="text/css" href="./static/styles/style.css">
+	 <meta charset="UTF-8"> 
+	 <script type="text/javascript" src="./static/scripts/jquery-3.3.1.min.js"></script>
+	 <script type="text/javascript" src="./static/scripts/bootstrap.min.js"></script>
+	 <script type="text/javascript" src="./static/scripts/scripts.js"></script>
+	 <script type="text/javascript" src="./static/scripts/typed.min.js"></script>
+</head>
+<body>
+<div class="tbl_body">
+	<span id="typed"></span>
+	
+	<br>
+	<table >
+		<tbody>
+			<tr>
+				<td class="cal_textarea" colspan="4"><input type="text" id="textarea" disabled>
+					<input type="hidden" id="result" >
+					<input type="hidden" id="past_operands">
+					<input type="hidden" id="operator">
+				</td>
+			</tr>
+			<tr style="margin-top: 5px;">
+				<td class="cal_btn">CE</td>
+				<td class="blk" colspan="2"></td>
+				<td class="cal_btn">%</td>
+			</tr>
+
+			<tr>
+				<td class="cal_btn">7</td>
+				<td class="cal_btn">8</td>
+				<td class="cal_btn">9</td>
+				<td class="cal_btn">X</td>
+			</tr>
+
+			<tr>
+				<td class="cal_btn">4</td>
+				<td class="cal_btn">5</td>
+				<td class="cal_btn">6</td>
+				<td class="cal_btn">-</td>
+			</tr>
+
+			<tr>
+				<td class="cal_btn">1</td>
+				<td class="cal_btn">2</td>
+				<td class="cal_btn">3</td>
+				<td class="cal_btn" rowspan="2">+</td>
+			</tr>
+
+			<tr>
+				<td class="cal_btn">0</td>
+				<td class="cal_btn">.</td>
+				<td class="cal_btn">=</td>
+				
+			</tr>
+		</tbody>
+	</table>
+</div>
+<script type="text/javascript">
+
+	$(document).ready(function(){
+		$("#textarea").val('');
+		$('#result').val('0');
+		$('#past_operands').val('');
+		$('#operator').val('');
+	})
+
+	var values=['1','2','3','4','5','6','7','8','9','0'];
+	var oper=['+','-','%','X','.','='];
+	
+	var result=0;
+	$(".cal_btn").click(function(){
+		
+		var t=$(this).text();
+		if(t=='CE'){
+			$("#textarea").val('');
+			$("#result").val('0');
+			$("#past_operands").val("");
+			$("#operator").val("");
+		}
+
+		//when he clicks a number append it in display
+		else if(values.indexOf(t)>=0){
+			$("#textarea").val($("#textarea").val()+t);
+
+		}
+
+
+		else if(oper.indexOf(t)>=0){
+			current_operands=$("#textarea").val();
+			new_l=current_operands.lenght;
+
+			var past_operands=$("#past_operands").val();
+			old_l=past_operands.length;
+
+			op=current_operands.slice(old_l,new_l);
+
+
+			//console.log(op,parseFloat($("#result").val()));
+			//more than one dot is not allowed in a number
+			if(t=='.'){
+				if(op.indexOf('.')>=0){
+					console.log('warning not allowed..');
+					call_typed_text('not a valid number');
+					return;
+				}
+				else{
+					$("#textarea").val($("#textarea").val()+t);
+					/*$("#past_operands").val($("#past_operands").val()+t);*/
+					return;
+				}
+			}
+
+
+			//save first operand and operator in results
+			if(t!='.' && $('#operator').val()==''){
+				//console.log("first operation",op,new_l)
+				//no first operand but operator is pressed
+				if(op==''){
+					if(t!='-'){
+					//console.log("illigal operation");
+					call_typed_text("illigal operation");
+					return;}
+					else{
+						//allow -a alone
+						$("#textarea").val('-');
+						return;
+					}
+				}
+				if(op=='-'){
+					//console.log("illigal operation");
+					call_typed_text("illigal operation");
+					return;
+				}
+				else if(t=='='){
+						$("#operator").val("");
+						$("#past_operands").val("");
+						$("#textarea").val(""+op);
+				}
+				else {
+					$("#past_operands").val($("#past_operands").val()+op+t);
+					$('#operator').val(''+t);
+					$("#textarea").val($("#textarea").val()+t);
+					$("#result").val(""+op);
+				}
+				return;
+			}
+
+	
+			//fetch second operand and perform action and store result
+			if(t!='.'  && $('#operator').val()!=''){
+				//console.log("second operation",op);
+				if(op=='' && op!='='){
+					console.log("illigal operation");
+					call_typed_text("illigal operation");
+					return;
+				}
+				var  _var1 =parseFloat($('#result').val());
+				var  _operator=$('#operator').val();
+				var  _var2 =parseFloat(op);
+				var _result;	
+		            $.post("/calculator.php",{var1:_var1,var2:_var2,operator:_operator},function(result){
+		            	result=JSON.parse(result);
+		            	//console.log(result);
+		            	if(result['response']==1){
+		            		_result=result['result'];
+		            						//console.log("operation",_var1,_var2,_operator,_result);
+							$("#result").val(""+_result);				
+							if(t=='=')
+								{
+									$("#operator").val("");
+									$("#past_operands").val("");
+									$("#textarea").val(""+_result);
+
+								}
+							else
+								{
+								$("#operator").val(""+t);
+								$("#past_operands").val($("#past_operands").val()+op+t);
+								$("#textarea").val($("#textarea").val()+t);
+								}
+		            	}
+		            });
+			}
+			
+		}		
+
+});
+		function call_typed_text(txt){
+			$('#typed').text('');
+			var typed = new Typed('#typed', {strings: [txt],typeSpeed: 40});
+			setTimeout(function(){ $('#typed').text(''); }, 2000);
+		}
+		function addi(a,b){
+			return a+b;
+		}
+		function subi(a,b){
+			return a-b;
+		}
+		function mul(a,b){
+			return a*b;
+		}
+		function divd(a,b){
+			return a/b;
+		}
+</script>
+</body>
+</html>
